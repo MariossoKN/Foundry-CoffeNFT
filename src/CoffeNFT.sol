@@ -37,7 +37,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane; // keyHash
     uint64 private immutable i_subId;
-    uint16 private immutable i_requestConfirmations;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private immutable i_callbackGasLimit;
     uint256 private immutable i_mintPrice;
     uint256 private immutable i_totalSupply;
@@ -63,7 +63,6 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
         address _vrfCoordinator,
         bytes32 _gasLane,
         uint64 _subId,
-        uint16 _requestConfirmations,
         uint32 _callbackGasLimit,
         uint256 _mintPrice,
         uint256 _totalSupply,
@@ -78,7 +77,6 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
         i_vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
         i_gasLane = _gasLane;
         i_subId = _subId;
-        i_requestConfirmations = _requestConfirmations;
         i_callbackGasLimit = _callbackGasLimit;
         i_mintPrice = _mintPrice;
         i_totalSupply = _totalSupply;
@@ -106,7 +104,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
             revert CoffeNft__SorryWeAreOutOfCoffe(tokenIds);
         }
         requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane, i_subId, i_requestConfirmations, i_callbackGasLimit, _mintAmount
+            i_gasLane, i_subId, REQUEST_CONFIRMATIONS, i_callbackGasLimit, _mintAmount
         );
         s_requestIdToAddress[requestId] = msg.sender;
         emit NftRequested(requestId, msg.sender);
@@ -172,7 +170,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
             revert CoffeNft__SorryWeAreOutOfCoffe(s_reservedSupply);
         }
         requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane, i_subId, i_requestConfirmations, i_callbackGasLimit, _mintAmount
+            i_gasLane, i_subId, REQUEST_CONFIRMATIONS, i_callbackGasLimit, _mintAmount
         );
         s_requestIdToAddress[requestId] = msg.sender;
         s_reservedSupplyReqId = requestId;
@@ -224,8 +222,8 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
         return i_subId;
     }
 
-    function getRequestConfirmations() public view returns (uint16) {
-        return i_requestConfirmations;
+    function getRequestConfirmations() public pure returns (uint16) {
+        return REQUEST_CONFIRMATIONS;
     }
 
     function getCallbackGasLimit() public view returns (uint32) {

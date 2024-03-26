@@ -18,13 +18,13 @@ contract DeployCoffeNFT is Script {
             address vrfCoordinator,
             bytes32 gasLane,
             uint64 subId,
-            uint16 requestConfirmations,
             uint32 callbackGasLimit,
             uint256 mintPrice,
             uint256 totalSupply,
             uint256 reservedSupply,
             uint256 maxMintAmount,
             string memory tokenUri,
+            address link,
             uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
         // deploying the CoffeNFT contract with the data from HelperConfig
@@ -33,7 +33,6 @@ contract DeployCoffeNFT is Script {
             vrfCoordinator,
             gasLane,
             subId,
-            requestConfirmations,
             callbackGasLimit,
             mintPrice,
             totalSupply,
