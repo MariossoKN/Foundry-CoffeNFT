@@ -28,7 +28,6 @@ contract HelperConfig is Script {
         uint256 reservedSupply;
         uint256 maxMintAmount;
         string tokenUri;
-        address link;
         uint256 deployerKey;
     }
 
@@ -46,7 +45,7 @@ contract HelperConfig is Script {
         NetworkConfig memory mainNetNetworkConfig = NetworkConfig({
             vrfCoordinator: 0x271682DEB8C4E0901D1a1550aD2e64D568E69909,
             gasLane: 0x9fe0eebf5e446e3c998ec9bb19951541aee00bb90ea201ae456421a2ded86805,
-            subId: 0,
+            subId: 0, // if left free, the script will create one
             requestConfirmations: 3,
             callbackGasLimit: 500000,
             mintPrice: 0.1 ether,
@@ -54,7 +53,6 @@ contract HelperConfig is Script {
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
             tokenUri: "ipfs://",
-            link: 0x514910771AF9Ca656af840dff83E8264EcF986CA,
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
         return mainNetNetworkConfig;
@@ -72,7 +70,6 @@ contract HelperConfig is Script {
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
             tokenUri: "ipfs://",
-            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
         return sepoliaNetworkConfig;
@@ -91,7 +88,6 @@ contract HelperConfig is Script {
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
             tokenUri: "ipfs://",
-            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
             deployerKey: DEFAULT_ANVIL_PRIVATE_KEY
         });
         return anvilNetworkConfig;
