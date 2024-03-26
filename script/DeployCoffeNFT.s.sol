@@ -11,7 +11,7 @@ contract DeployCoffeNFT is Script {
     CoffeNFT public coffeNft;
     HelperConfig public helperConfig;
 
-    function run() external {
+    function run() external returns (CoffeNFT, HelperConfig) {
         // get data from HelperConfig for the constructor parameters
         helperConfig = new HelperConfig();
         (
@@ -24,7 +24,7 @@ contract DeployCoffeNFT is Script {
             uint256 reservedSupply,
             uint256 maxMintAmount,
             string memory tokenUri,
-            address link,
+            ,
             uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
         // deploying the CoffeNFT contract with the data from HelperConfig
@@ -41,5 +41,6 @@ contract DeployCoffeNFT is Script {
             tokenUri
         );
         vm.stopBroadcast();
+        return (coffeNft, helperConfig);
     }
 }
