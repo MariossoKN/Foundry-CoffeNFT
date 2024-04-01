@@ -39,23 +39,16 @@ contract CoffeNftTest is Test {
     function setUp() external {
         deployCoffeNft = new DeployCoffeNFT();
         (coffeNft, helperConfig) = deployCoffeNft.run();
-        (
-            vrfCoordinator,
-            gasLane,
-            subId,
-            callbackGasLimit,
-            mintPrice,
-            totalSupply,
-            reservedSupply,
-            maxMintAmount,
-            tokenUri,
-            link,
-            deployerKey
-        ) = helperConfig.activeNetworkConfig();
+        // reading the config data twice to prevent stack too deep error
+        (vrfCoordinator, gasLane, subId, callbackGasLimit, mintPrice, totalSupply, reservedSupply,,,,) =
+            helperConfig.activeNetworkConfig();
+        (,,,,,,, maxMintAmount, tokenUri, link, deployerKey) = helperConfig.activeNetworkConfig();
         enough_mint_price = mintPrice;
         not_enough_mint_price = mintPrice - 1;
         vm.deal(USER, STARTING_BALANCE);
+        vm.deal(USER2, STARTING_BALANCE);
     }
+    // constructor TEST //
 
     function testConstructorParameters() public {
         assertEq(address(coffeNft.getVrfCoordinatorAddress()), vrfCoordinator);
@@ -67,5 +60,20 @@ contract CoffeNftTest is Test {
         assertEq(coffeNft.getReservedSupply(), reservedSupply);
         assertEq(coffeNft.getMaxMintAmount(), maxMintAmount);
         assertEq(coffeNft.getTokenUris(), tokenUri);
+    }
+
+    // requestNft TEST //
+    function testMintAmountCantBeZero() public {
+        vm.prank(USER);
+        vm.expectRevert(CoffeNFT.CoffeNft__WrongMintAmount.selector);
+        coffeNft.requestNft(0);
+    }
+
+    function testMintAmountCantBeMoreThanMaxMintAmount(uint32 _amount) public {
+        uint256 maxUint32 = type(uint32).max;
+        uint256 amount = bound(_amount, maxMintAmount, maxUint32);
+        vm.prank(USER);
+        vm.expectRevert(CoffeNFT.CoffeNft__WrongMintAmount.selector);
+        coffeNft.requestNft(uint32(amount));
     }
 }
