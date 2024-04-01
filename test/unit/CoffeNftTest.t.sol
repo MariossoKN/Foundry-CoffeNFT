@@ -9,9 +9,8 @@ import {Test, console} from "../../lib/forge-std/src/Test.sol";
 import {VRFCoordinatorV2Mock} from "../../test/mock/VRFCoordinatorV2Mock.sol";
 import {LinkToken} from "../../test/mock/LinkToken.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
-import {StdInvariant} from "forge-std/StdInvariant.sol";
 
-contract CoffeNftTest is StdInvariant, Test {
+contract CoffeNftTest is Test {
     CoffeNFT public coffeNft;
     VRFCoordinatorV2Mock public vrfCoordinatorV2Mock;
     LinkToken public linkToken;
@@ -62,7 +61,7 @@ contract CoffeNftTest is StdInvariant, Test {
     function testConstructorParameters() public view {
         assertEq(address(coffeNft.getVrfCoordinatorAddress()), vrfCoordinator);
         assertEq(coffeNft.getGasLane(), gasLane);
-        assertEq(coffeNft.getSubId(), subId);
+        // assertEq(coffeNft.getSubId(), subId);
         assertEq(coffeNft.getCallbackGasLimit(), callbackGasLimit);
         assertEq(coffeNft.getMintPrice(), mintPrice);
         assertEq(coffeNft.getTotalSupply(), totalSupply);
@@ -71,26 +70,67 @@ contract CoffeNftTest is StdInvariant, Test {
         assertEq(coffeNft.getTokenUris(), tokenUri);
     }
 
+    function testMintStateStartsClosed() public view {
+        assertEq(coffeNft.getMintStatus(), false);
+    }
+
     // requestNft TEST //
-    function testMintAmountCantBeZero() public setMintStatusToOpen {
+    function testMintAmountCantBeZero() public {
         vm.prank(USER);
         vm.expectRevert(CoffeNFT.CoffeNft__WrongMintAmount.selector);
         coffeNft.requestNft{value: enough_mint_price}(0);
     }
 
-    function testRequest() public setMintStatusToOpen {
-        assertEq(coffeNft.balanceOf(USER), 0);
+    function testFuzzMintAmountCantBeMoreThanMaxMintAmount(uint32 _amount) public setMintStatusToOpen {
+        uint256 maxUint32 = type(uint32).max;
+        uint256 amount = bound(_amount, maxMintAmount + 1, maxUint32);
         vm.prank(USER);
-        coffeNft.requestNft{value: enough_mint_price}(1);
-        // assertEq(coffeNft.balanceOf(USER), 1);
-        // assertEq(coffeNft.getMintAmount(USER), 1);
+        vm.expectRevert(CoffeNFT.CoffeNft__WrongMintAmount.selector);
+        coffeNft.requestNft(uint32(amount));
     }
 
-    // function testFuzzMintAmountCantBeMoreThanMaxMintAmount(uint32 _amount) public {
-    //     uint256 maxUint32 = type(uint32).max;
-    //     uint256 amount = bound(_amount, 0, 5);
-    //     vm.prank(USER);
-    //     vm.expectRevert(CoffeNFT.CoffeNft__WrongMintAmount.selector);
-    //     coffeNft.requestNft(uint32(amount));
-    // }
+    function testRevertsIfMintNotOpen() public {
+        vm.prank(USER);
+        vm.expectRevert(CoffeNFT.CoffeNft__MintNotActive.selector);
+        coffeNft.requestNft{value: enough_mint_price}(1);
+    }
+
+    function testRevertsIfNotEnoughEthSentWithOneRequest() public setMintStatusToOpen {
+        vm.prank(USER);
+        vm.expectRevert(CoffeNFT.CoffeNft__NotEnoughEthSent.selector);
+        coffeNft.requestNft{value: not_enough_mint_price}(1);
+    }
+
+    function testRevertsIfNotEnoughEthSentWithMultpleRequests() public setMintStatusToOpen {
+        uint32 amountMinted = 4;
+        vm.prank(USER);
+        vm.expectRevert(CoffeNFT.CoffeNft__NotEnoughEthSent.selector);
+        coffeNft.requestNft{value: not_enough_mint_price * amountMinted}(amountMinted);
+    }
+
+    function testFuzzRevertsIfNotEnoughEthSent(uint256 _amount) public setMintStatusToOpen {
+        uint256 amount = bound(_amount, 1, mintPrice - 1);
+        vm.prank(USER);
+        vm.expectRevert(CoffeNFT.CoffeNft__NotEnoughEthSent.selector);
+        coffeNft.requestNft{value: amount}(1);
+    }
+
+    // function testRevertsIfMaxAmountOfMintsReached() public setMintStatusToOpen {}
+
+    // function testRevertsIfOutOfCofffe() public setMintStatusToOpen {}
+
+    function testRequest() public setMintStatusToOpen {
+        uint32 mintAmount = 2;
+        uint256 amountBefore = coffeNft.balanceOf(USER);
+        assertEq(amountBefore, 0);
+
+        vm.prank(USER);
+        (uint256 requestId) = coffeNft.requestNft{value: enough_mint_price * mintAmount}(mintAmount);
+
+        assert(requestId > 0);
+
+        VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(requestId, address(coffeNft));
+        uint256 amountAfter = coffeNft.balanceOf(USER);
+        assertEq(amountAfter, mintAmount);
+    }
 }

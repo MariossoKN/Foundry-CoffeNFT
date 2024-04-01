@@ -51,7 +51,7 @@ contract HelperConfig is Script {
             totalSupply: 10000000000000000000000,
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
-            tokenUri: "ipfs://",
+            tokenUri: "ipfs://bafybeih73omsfk6rzjp4hsviaxa2ucpchnnnxpb2bzvgf4dakwbod2rll4",
             link: 0x514910771AF9Ca656af840dff83E8264EcF986CA,
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
@@ -68,7 +68,7 @@ contract HelperConfig is Script {
             totalSupply: 10000000000000000000000,
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
-            tokenUri: "ipfs://",
+            tokenUri: "ipfs://bafybeih73omsfk6rzjp4hsviaxa2ucpchnnnxpb2bzvgf4dakwbod2rll4",
             link: 0x514910771AF9Ca656af840dff83E8264EcF986CA,
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
@@ -89,7 +89,7 @@ contract HelperConfig is Script {
             totalSupply: 10000000000000000000000,
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
-            tokenUri: "ipfs://",
+            tokenUri: "ipfs://bafybeih73omsfk6rzjp4hsviaxa2ucpchnnnxpb2bzvgf4dakwbod2rll4",
             link: address(linkToken),
             deployerKey: DEFAULT_ANVIL_PRIVATE_KEY
         });
