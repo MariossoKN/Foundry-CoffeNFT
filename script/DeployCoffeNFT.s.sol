@@ -5,11 +5,14 @@ pragma solidity ^0.8.19;
 import {CoffeNFT} from "../src/CoffeNFT.sol";
 import {Script} from "../lib/forge-std/src/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
+import {VRFCoordinatorV2Mock} from "../test/mock/VRFCoordinatorV2Mock.sol";
 // import {CreateSubscription, FundSubscription, AddConsumer} from "./Interactions.s.sol";
 
 contract DeployCoffeNFT is Script {
     CoffeNFT public coffeNft;
     HelperConfig public helperConfig;
+
+    uint96 constant AMOUNT_TO_FUND = 10 ether;
 
     function run() external returns (CoffeNFT, HelperConfig) {
         // get data from HelperConfig for the constructor parameters
@@ -27,6 +30,14 @@ contract DeployCoffeNFT is Script {
             ,
             uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
+
+        if (subId == 0) {
+            vm.startBroadcast(deployerKey);
+            (subId) = VRFCoordinatorV2Mock(vrfCoordinator).createSubscription();
+            VRFCoordinatorV2Mock(vrfCoordinator).fundSubscription(subId, AMOUNT_TO_FUND);
+            vm.stopBroadcast();
+        }
+
         // deploying the CoffeNFT contract with the data from HelperConfig
         vm.startBroadcast(deployerKey);
         coffeNft = new CoffeNFT(
@@ -40,6 +51,8 @@ contract DeployCoffeNFT is Script {
             maxMintAmount,
             tokenUri
         );
+
+        VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(subId, address(coffeNft));
         vm.stopBroadcast();
         return (coffeNft, helperConfig);
     }

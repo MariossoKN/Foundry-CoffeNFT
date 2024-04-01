@@ -92,12 +92,12 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @param _mintAmount number of NFTs to mint / number of random words to request.
      */
     function requestNft(uint32 _mintAmount) external payable returns (uint256 requestId) {
-        if (_mintAmount <= 0 || _mintAmount > (i_maxMintAmount / 10 ** 18)) {
+        if (_mintAmount <= 0 || _mintAmount > i_maxMintAmount) {
             revert CoffeNft__WrongMintAmount();
         }
         if (s_mintStatus == false) revert CoffeNft__MintNotActive();
         if (msg.value < (i_mintPrice * _mintAmount)) revert CoffeNft__NotEnoughEthSent();
-        if ((s_ownerToTokenIds[msg.sender] + _mintAmount) > (i_maxMintAmount / 10 ** 18)) {
+        if ((s_ownerToTokenIds[msg.sender] + _mintAmount) > i_maxMintAmount) {
             revert CoffeNft__MaxMintAmountReached();
         }
         if ((tokenIds * 10 ** 18 + (_mintAmount * 10 ** 18)) > i_totalSupply) {

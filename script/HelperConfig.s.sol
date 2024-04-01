@@ -76,7 +76,10 @@ contract HelperConfig is Script {
     }
 
     function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
+        vm.startBroadcast();
+        linkToken = new LinkToken();
         vrfCoordinatorV2Mock = new VRFCoordinatorV2Mock(BASE_FEE, GAS_PRICE_LINK);
+        vm.stopBroadcast();
         NetworkConfig memory anvilNetworkConfig = NetworkConfig({
             vrfCoordinator: address(vrfCoordinatorV2Mock),
             gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
@@ -87,7 +90,7 @@ contract HelperConfig is Script {
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
             tokenUri: "ipfs://",
-            link: 0x514910771AF9Ca656af840dff83E8264EcF986CA,
+            link: address(linkToken),
             deployerKey: DEFAULT_ANVIL_PRIVATE_KEY
         });
         return anvilNetworkConfig;
