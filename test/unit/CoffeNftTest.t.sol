@@ -170,16 +170,16 @@ contract CoffeNftTest is Test {
     }
 
     function testRevertsIfOutOfCoffe() public setMintStatusToOpen {
-        uint256 usersAmount = 20;
+        uint256 usersAmount = 17;
         for (uint256 i = 1; i < usersAmount + 1; i++) {
             address user = address(uint160(i));
             hoax(user, STARTING_BALANCE);
             (uint256 requestId) = coffeNft.requestNft{value: enough_mint_price * maxMintAmount}(uint32(maxMintAmount));
             VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(requestId, address(coffeNft));
         }
-        address user21 = address(uint160(usersAmount + 1));
+        address user18 = address(uint160(usersAmount + 1));
         uint256 tokenIds = coffeNft.getTokenIds();
-        hoax(user21, STARTING_BALANCE);
+        hoax(user18, STARTING_BALANCE);
         vm.expectRevert(abi.encodeWithSelector(CoffeNFT.CoffeNft__SorryWeAreOutOfCoffe.selector, tokenIds));
         coffeNft.requestNft{value: enough_mint_price}(1);
     }

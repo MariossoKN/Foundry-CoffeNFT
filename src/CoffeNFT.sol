@@ -100,7 +100,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
         if ((s_ownerToTokenIds[msg.sender] + _mintAmount) > i_maxMintAmount) {
             revert CoffeNft__MaxMintAmountReached();
         }
-        if ((tokenIds * 10 ** 18 + (_mintAmount * 10 ** 18)) > i_totalSupply) {
+        if ((tokenIds * 10 ** 18 + (_mintAmount * 10 ** 18)) > i_totalSupply - s_reservedSupply) {
             revert CoffeNft__SorryWeAreOutOfCoffe(tokenIds);
         }
         requestId = i_vrfCoordinator.requestRandomWords(
