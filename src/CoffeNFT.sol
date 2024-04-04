@@ -162,7 +162,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     /**
      * @dev "requests" X amount of NFTs to be minted from the reserved supply. This function gets X amount of random words from the VRF. Generates an requestId and pairs it with the
      * caller. Also sets the reservedSupplyReqId so the fullfillRandomWords function recognizes that it is
-     * called by the mintReservedSupply function
+     * called by the mintReservedSupply function. Only updates the reserved supply not the mintAmount of owner.
      * @param _mintAmount number of NFTs to mint / number of random words to request.
      */
     function mintReservedSupply(uint32 _mintAmount) public onlyOwner returns (uint256 requestId) {
