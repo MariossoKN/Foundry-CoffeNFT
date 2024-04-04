@@ -89,6 +89,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @dev caller can call this function with a input of X amount NFTs to mint (max i_maxMintAmount defined in constructor). This will request a X amount of random words from
      * the Chainlink VRF. Generates an requestId and pairs it with the address of the caller.
      * @dev caller has to send i_mintPrice * X amount of NFTs caller wants to mint.
+     * @dev !!! Set the callbackGasLimit according to the max amount of NFTs to mint at once !!!
      * @param _mintAmount number of NFTs to mint / number of random words to request.
      */
     function requestNft(uint32 _mintAmount) external payable returns (uint256 requestId) {
@@ -163,6 +164,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @dev "requests" X amount of NFTs to be minted from the reserved supply. This function gets X amount of random words from the VRF. Generates an requestId and pairs it with the
      * caller. Also sets the reservedSupplyReqId so the fullfillRandomWords function recognizes that it is
      * called by the mintReservedSupply function. Only updates the reserved supply not the mintAmount of owner.
+     * @dev !!! Set the callbackGasLimit according to the max amount of NFTs to mint at once !!!
      * @param _mintAmount number of NFTs to mint / number of random words to request.
      */
     function mintReservedSupply(uint32 _mintAmount) public onlyOwner returns (uint256 requestId) {
