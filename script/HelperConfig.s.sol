@@ -69,7 +69,7 @@ contract HelperConfig is Script {
             reservedSupply: 150000000000000000000,
             maxMintAmount: 5,
             tokenUri: "ipfs://bafybeih73omsfk6rzjp4hsviaxa2ucpchnnnxpb2bzvgf4dakwbod2rll4",
-            link: 0x514910771AF9Ca656af840dff83E8264EcF986CA,
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
         return sepoliaNetworkConfig;

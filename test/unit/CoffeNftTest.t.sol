@@ -638,7 +638,6 @@ contract CoffeNftTest is Test {
 
     function testShouldWithdrawAllEthFromContractToOwner() public setMintStatusToOpen {
         address owner = coffeNft.owner();
-        uint256 startingContractBalance = address(coffeNft).balance;
         uint256 startingOwnerBalance = owner.balance;
 
         uint256 usersAmount = 10;
