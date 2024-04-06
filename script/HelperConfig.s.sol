@@ -84,7 +84,7 @@ contract HelperConfig is Script {
             vrfCoordinator: address(vrfCoordinatorV2Mock),
             gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
             subId: 0,
-            callbackGasLimit: 800000,
+            callbackGasLimit: 2000000, // is set this high so the tests dont fail due to outOfGas error (only for Anvil)
             mintPrice: 0.1 ether,
             totalSupply: 100000000000000000000, // 100
             reservedSupply: 15000000000000000000, // 15
