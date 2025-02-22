@@ -11,11 +11,10 @@ pragma solidity ^0.8.19;
  * can also change the minting status to pause the minting, update the token URI, and withdraw contract funds from contract.
  */
 import {ERC721URIStorage, ERC721} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
+contract CoffeNFT is VRFConsumerBaseV2Plus, ERC721URIStorage {
     /////////
     // Errors
     /////////
@@ -34,9 +33,9 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     //////////////////
     uint256 private tokenIds = 0;
 
-    VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
+    VRFConsumerBaseV2Plus private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane; // keyHash
-    uint64 private immutable i_subId;
+    uint256 private immutable i_subId;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private immutable i_callbackGasLimit;
     uint256 private immutable i_mintPrice;
@@ -45,9 +44,11 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     uint256 private s_reservedSupply;
     bool private s_mintStatus;
     uint256 private s_reservedSupplyReqId = 0;
+    address private s_owner;
 
     mapping(address owner => uint32 amountMinted) private s_ownerToTokenIds;
-    mapping(uint256 requestId => address requester) private s_requestIdToAddress;
+    mapping(uint256 requestId => address requester)
+        private s_requestIdToAddress;
 
     /* URI */
     string internal s_tokenUri;
@@ -56,25 +57,33 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     event NftRequested(uint256 indexed requestId, address requester);
     event NftMinted(uint256[] randomWords, string tokenUri, uint256 tokenId);
 
+    /* Modifiers */
+    modifier checkIfOwner() {
+        require(msg.sender == s_owner, "Only owner can call this function");
+        _;
+    }
+
     ////////////
     // Functions
     ////////////
     constructor(
         address _vrfCoordinator,
         bytes32 _gasLane,
-        uint64 _subId,
+        uint256 _subId,
         uint32 _callbackGasLimit,
         uint256 _mintPrice,
         uint256 _totalSupply,
         uint256 _reservedSupply,
         uint256 _maxMintAmount,
         string memory _tokenUri
-    ) ERC721("CoffeNFT", "COF") VRFConsumerBaseV2(_vrfCoordinator) Ownable(msg.sender) {
-        if (_reservedSupply > _totalSupply) revert CoffeNft__ReservedSupplyHasToBeLess();
-        if (_maxMintAmount > _totalSupply || (_maxMintAmount / 10 ** 18) > 500) {
+    ) ERC721("CoffeNFT", "COF") VRFConsumerBaseV2Plus(_vrfCoordinator) {
+        if (_reservedSupply > _totalSupply)
+            revert CoffeNft__ReservedSupplyHasToBeLess();
+        if (
+            _maxMintAmount > _totalSupply || (_maxMintAmount / 10 ** 18) > 500
+        ) {
             revert CoffeNft__MaxMintAmountHasToBeLess();
         }
-        i_vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
         i_gasLane = _gasLane;
         i_subId = _subId;
         i_callbackGasLimit = _callbackGasLimit;
@@ -83,6 +92,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
         s_reservedSupply = _reservedSupply;
         i_maxMintAmount = _maxMintAmount;
         s_tokenUri = _tokenUri;
+        s_owner = msg.sender;
     }
 
     /**
@@ -92,20 +102,35 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @dev !!! Set the callbackGasLimit according to the max amount of NFTs to mint at once !!!
      * @param _mintAmount number of NFTs to mint / number of random words to request.
      */
-    function requestNft(uint32 _mintAmount) external payable returns (uint256 requestId) {
+    function requestNft(
+        uint32 _mintAmount
+    ) external payable returns (uint256 requestId) {
         if (_mintAmount <= 0 || _mintAmount > i_maxMintAmount) {
             revert CoffeNft__WrongMintAmount();
         }
         if (s_mintStatus == false) revert CoffeNft__MintNotActive();
-        if (msg.value < (i_mintPrice * _mintAmount)) revert CoffeNft__NotEnoughEthSent();
+        if (msg.value < (i_mintPrice * _mintAmount))
+            revert CoffeNft__NotEnoughEthSent();
         if ((s_ownerToTokenIds[msg.sender] + _mintAmount) > i_maxMintAmount) {
             revert CoffeNft__MaxMintAmountReached();
         }
-        if ((tokenIds * 10 ** 18 + (_mintAmount * 10 ** 18)) > i_totalSupply - s_reservedSupply) {
+        if (
+            (tokenIds * 10 ** 18 + (_mintAmount * 10 ** 18)) >
+            i_totalSupply - s_reservedSupply
+        ) {
             revert CoffeNft__SorryWeAreOutOfCoffe(tokenIds);
         }
-        requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane, i_subId, REQUEST_CONFIRMATIONS, i_callbackGasLimit, _mintAmount
+        requestId = s_vrfCoordinator.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: i_gasLane,
+                subId: i_subId,
+                requestConfirmations: REQUEST_CONFIRMATIONS,
+                callbackGasLimit: i_callbackGasLimit,
+                numWords: _mintAmount,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            })
         );
         s_requestIdToAddress[requestId] = msg.sender;
         emit NftRequested(requestId, msg.sender);
@@ -118,15 +143,22 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @param _requestId requestId from the requestNft function.
      * @param _randomWords X amount of random words from the Chainlink VRF.
      */
-    function fulfillRandomWords(uint256 _requestId, uint256[] memory _randomWords) internal override {
+    function fulfillRandomWords(
+        uint256 _requestId,
+        uint256[] calldata _randomWords
+    ) internal override {
         address nftOwner = s_requestIdToAddress[_requestId];
         uint256 randomWordsLength = _randomWords.length;
 
         // updating the state variables after the fulfillment (not after request) in case the VRF request fails (for example in a case of low callbackGasLimit)
         if (s_reservedSupplyReqId == _requestId) {
-            s_reservedSupply = s_reservedSupply - (randomWordsLength * 10 ** 18);
+            s_reservedSupply =
+                s_reservedSupply -
+                (randomWordsLength * 10 ** 18);
         } else {
-            s_ownerToTokenIds[nftOwner] = s_ownerToTokenIds[nftOwner] + uint32(randomWordsLength);
+            s_ownerToTokenIds[nftOwner] =
+                s_ownerToTokenIds[nftOwner] +
+                uint32(randomWordsLength);
         }
 
         for (uint256 i = 0; i < randomWordsLength; i++) {
@@ -143,7 +175,9 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @dev assigns a random URI according to the mod of the random number generated by the VRF.
      * @param _randomNumber random number/s generated by the VRF.
      */
-    function pickRandomNft(uint256 _randomNumber) public view returns (string memory) {
+    function pickRandomNft(
+        uint256 _randomNumber
+    ) public view returns (string memory) {
         string memory tokenUri;
         if (_randomNumber <= 10) {
             tokenUri = string.concat(s_tokenUri, "/1.json");
@@ -167,12 +201,23 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
      * @dev !!! Keep in mind if the callbackGasLimit is set too low the whole reserved supply cant be minted in a single call but only in smaller batches !!!
      * @param _mintAmount number of NFTs to mint / number of random words to request.
      */
-    function mintReservedSupply(uint32 _mintAmount) public onlyOwner returns (uint256 requestId) {
+    function mintReservedSupply(
+        uint32 _mintAmount
+    ) public checkIfOwner returns (uint256 requestId) {
         if (_mintAmount > s_reservedSupply / 10 ** 18) {
             revert CoffeNft__SorryWeAreOutOfCoffe(s_reservedSupply);
         }
-        requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane, i_subId, REQUEST_CONFIRMATIONS, i_callbackGasLimit, _mintAmount
+        requestId = s_vrfCoordinator.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: i_gasLane,
+                subId: i_subId,
+                requestConfirmations: REQUEST_CONFIRMATIONS,
+                callbackGasLimit: i_callbackGasLimit,
+                numWords: _mintAmount,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            })
         );
         s_requestIdToAddress[requestId] = msg.sender;
         s_reservedSupplyReqId = requestId;
@@ -180,32 +225,38 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     }
 
     // lets the owner of the contract to set the mint status to true which will open the mint
-    function setMintStatusOpen() external onlyOwner {
+    function setMintStatusOpen() external checkIfOwner {
         s_mintStatus = true;
     }
 
     // lets the owner of the contract to set the mint status to false which will close the mint
-    function setMintStatusClose() external onlyOwner {
+    function setMintStatusClose() external checkIfOwner {
         s_mintStatus = false;
     }
 
     // lets the owner of the contract to set/change the token uri
-    function setTokenUri(string memory _newTokenUri) public onlyOwner {
+    function setTokenUri(string memory _newTokenUri) public checkIfOwner {
         s_tokenUri = _newTokenUri;
     }
 
     // lets the owner of the contract to withdraw the funds from the contract
-    function withdraw() public onlyOwner {
+    function withdraw() public checkIfOwner {
         uint256 amount = address(this).balance;
-        (bool success,) = payable(msg.sender).call{value: amount}("");
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
         if (!success) {
             revert CoffeNft__TransferFailed();
         }
     }
 
+    // transfer ownership of the contract
+    function transferOwnershipOfContract(address newOwner) public checkIfOwner {
+        require(newOwner != address(0), "New owner cannot be the zero address");
+        s_owner = newOwner;
+    }
+
     /* View and Pure functions */
-    function getVrfCoordinatorAddress() public view returns (VRFCoordinatorV2Interface) {
-        return i_vrfCoordinator;
+    function getVrfCoordinatorAddress() public view returns (address) {
+        return address(s_vrfCoordinator);
     }
 
     function getMaxMintAmount() public view returns (uint256) {
@@ -220,7 +271,7 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
         return i_gasLane;
     }
 
-    function getSubId() public view returns (uint64) {
+    function getSubId() public view returns (uint256) {
         return i_subId;
     }
 
@@ -258,5 +309,9 @@ contract CoffeNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
 
     function getCurrentSupply() public view returns (uint256) {
         return tokenIds * 10 ** 18;
+    }
+
+    function getOwnerAddress() public view returns (address) {
+        return s_owner;
     }
 }

@@ -5,7 +5,7 @@ pragma solidity ^0.8.19;
 import {CoffeNFT} from "../src/CoffeNFT.sol";
 import {Script} from "../lib/forge-std/src/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {VRFCoordinatorV2Mock} from "../test/mock/VRFCoordinatorV2Mock.sol";
+import {VRFCoordinatorV2_5Mock} from "../test/mock/VRFCoordinatorV2_5Mock.sol";
 import {LinkToken} from "../test/mock/LinkToken.sol";
 import {DevOpsTools} from "../lib/foundry-devops/src/DevOpsTools.sol";
 
@@ -24,7 +24,7 @@ contract DeployCoffeNFT is Script {
         (
             address vrfCoordinator,
             bytes32 gasLane,
-            uint64 subId,
+            uint256 subId,
             uint32 callbackGasLimit,
             uint256 mintPrice,
             uint256 totalSupply,
@@ -37,16 +37,24 @@ contract DeployCoffeNFT is Script {
 
         if (subId == 0) {
             vm.startBroadcast(deployerKey);
-            (subId) = VRFCoordinatorV2Mock(vrfCoordinator).createSubscription();
+            (subId) = VRFCoordinatorV2_5Mock(vrfCoordinator)
+                .createSubscription();
             vm.stopBroadcast();
 
             if (block.chainid == 31337) {
                 vm.startBroadcast(deployerKey);
-                VRFCoordinatorV2Mock(vrfCoordinator).fundSubscription(subId, AMOUNT_TO_FUND);
+                VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(
+                    subId,
+                    AMOUNT_TO_FUND
+                );
                 vm.stopBroadcast();
             } else {
                 vm.startBroadcast(deployerKey);
-                LinkToken(link).transferAndCall(address(vrfCoordinator), AMOUNT_TO_FUND, abi.encode(subId));
+                LinkToken(link).transferAndCall(
+                    address(vrfCoordinator),
+                    AMOUNT_TO_FUND,
+                    abi.encode(subId)
+                );
                 vm.stopBroadcast();
             }
         }
@@ -67,7 +75,10 @@ contract DeployCoffeNFT is Script {
 
         // address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment("CoffeNFT", block.chainid);
 
-        VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(subId, address(coffeNft));
+        VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(
+            subId,
+            address(coffeNft)
+        );
         vm.stopBroadcast();
         return (coffeNft, helperConfig);
     }
